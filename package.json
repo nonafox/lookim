@@ -1,0 +1,32 @@
+{
+  "name": "lookim",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 3940",
+    "build": "vue-tsc && vite build",
+    "preview": "vite preview",
+    "build-only": "vite build"
+  },
+  "dependencies": {
+    "cubing": "^0.51.0",
+    "element-plus": "^2.7.8",
+    "gan-web-bluetooth": "^2.2.2",
+    "vue": "^3.4.26",
+    "vue-router": "^4.4.0"
+  },
+  "devDependencies": {
+    "@vite-pwa/assets-generator": "^0.2.4",
+    "@vitejs/plugin-vue": "^5.0.4",
+    "typescript": "^5.2.2",
+    "unplugin-auto-import": "^0.18.2",
+    "unplugin-vue-components": "^0.27.3",
+    "vite": "^5.2.10",
+    "vite-plugin-pwa": "^0.20.0",
+    "vue-tsc": "^2.0.16",
+    "workbox-window": "^7.1.0",
+    "sharp": "^0.33.4",
+    "sharp-ico": "^0.1.5"
+  }
+}
