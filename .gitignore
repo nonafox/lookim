@@ -24,4 +24,4 @@ dev-dist
 *.sln
 *.sw?
 
-.vscode
+/.vscode
