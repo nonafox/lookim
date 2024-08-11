@@ -318,16 +318,18 @@
           conn_premove_buf += ' ' + event.move
         }
         else {
-          cube_player!.experimentalAddMove(event.move, { cancel: false })
-          if (timer_status) {
-            if (timer_move_events.length >= max_move_records)
-              timer_move_events.splice(1, 1)
-            timer_move_events.push(event)
+          if (earphone_mode.value) {
+            cube_player!.experimentalAddMove(event.move, { cancel: false })
+            if (timer_status) {
+              if (timer_move_events.length >= max_move_records)
+                timer_move_events.splice(1, 1)
+              timer_move_events.push(event)
+            }
+            // strict logical sequences here
+            if (timer_ready_status)
+              timer_go()
+            await push_move_buf(event.move)
           }
-          // strict logical sequences here
-          if (timer_ready_status)
-            timer_go()
-          await push_move_buf(event.move)
         }
       }
       else if (event.type == 'DISCONNECT') {
