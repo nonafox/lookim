@@ -318,8 +318,8 @@
           conn_premove_buf += ' ' + event.move
         }
         else {
+          cube_player!.experimentalAddMove(event.move, { cancel: false })
           if (earphone_mode.value) {
-            cube_player!.experimentalAddMove(event.move, { cancel: false })
             if (timer_status) {
               if (timer_move_events.length >= max_move_records)
                 timer_move_events.splice(1, 1)
