@@ -339,15 +339,21 @@
     })
     await conn.sendCubeCommand({ type: 'REQUEST_FACELETS' })
   }
+  function everything_off(handle_earphone_mode = false) {
+    conn_status.value = conn_synced.value
+    if (handle_earphone_mode)
+      earphone_mode.value = false
+    conn_premove_buf = ''
+    timer_move_buf = make_move_buf()
+    timer_clocks_clear()
+    make_note()
+  }
   function disconnect() {
     if (! conn)
       return 0
     conn.disconnect()
     conn = null
-    conn_status.value = conn_synced.value = earphone_mode.value = false
-    conn_premove_buf = ''
-    timer_move_buf = make_move_buf()
-    make_note()
+    everything_off(true)
   }
   async function reset_cube() {
     await conn!.sendCubeCommand({ type: 'REQUEST_RESET' })
@@ -357,6 +363,7 @@
     if (timer_ready_status || timer_status)
       return 0
     earphone_mode.value = ! earphone_mode.value
+    everything_off()
     ElMessage.info(earphone_mode.value ? 'Earphone mode on!' : 'Earphone mode off!')
   }
   async function push_move_buf(move: string) {
