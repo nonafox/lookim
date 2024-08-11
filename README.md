@@ -1,2 +1,2 @@
 # Initial purpose
-Just to help looklook time her cube solving offline.
+Just to help Looklook time her cube solving offline.
