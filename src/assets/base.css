@@ -4,7 +4,9 @@
     --colour-theme-bg: #f6f6ff;
     --colour-border: #ff5757;
     --colour-font: #ff5757;
-    --colour-font-rev: #fff1f1;
+    --colour-font-shallow: #ff9a9a;
+    --colour-font-shallow-plus: #ffc9c9;
+    --colour-font-rev: #f6f6ff;
     --colour-font-str1: #ff1919;
     --colour-font-str2:#5454fb;
 
@@ -26,4 +28,14 @@
     --copyright-margin-top: 5rem;
     --copyright-padding: .6rem 1.8rem;
     --copyright-radius: 1.6rem;
+    --score-page-margin: 1.5rem;
+    --score-list-height: 20rem;
+    --score-width: 20rem;
+    --score-margin: .4rem;
+    --score-padding: .6rem;
+    --overall-width: 20rem;
+    --overall-margin: 1rem;
+    --minitable-margin: .2rem;
+    --minitable-key-padding: .4rem;
+    --minitable-key-margin: .2rem;
 }
