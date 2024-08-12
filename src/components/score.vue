@@ -1,10 +1,10 @@
 <style scoped>
   .score {
-    color: var(--colour-font);
+    color: var(--color-font);
   }
   .score .odds {
-    font-size: var(--font-size-sm);
-    color: var(--colour-font-shallow-plus);
+    font-size: 80%;
+    color: var(--color-font-shallow-plus);
   }
 </style>
 

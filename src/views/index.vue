@@ -1,7 +1,7 @@
 <style scoped>
   .link {
-    width: var(--link-img-width);
-    border-radius: 0 var(--radius-md) var(--radius-md) var(--radius-md);
+    width: 100%;
+    border-radius: 0 .8rem .8rem .8rem;
   }
 </style>
 

@@ -2,25 +2,25 @@
   .item {
     display: inline-block;
     box-sizing: border-box;
-    margin: var(--minitable-margin);
-    font-size: var(--font-size-sm);
-    color: var(--colour-font);
+    margin: .2rem;
+    font-size: 80%;
+    color: var(--color-font);
   }
   .item .name {
     display: inline-block;
     box-sizing: border-box;
-    border-radius: var(--radius-lg);
-    background-color: var(--colour-theme);
-    color: var(--colour-font-rev);
-    padding: var(--minitable-key-padding);
-    margin-right: var(--minitable-key-margin);
+    border-radius: 1rem;
+    background-color: var(--color-theme);
+    color: var(--color-font-rev);
+    padding: .4rem;
+    margin-right: .2rem;
   }
 </style>
 
 <template>
   <span class="item">
     <span class="name">{{ props.name }}</span>
-    <score v-if="props.val[0] == '$'" :score="props.val.substr(1)"></score>
+    <score v-if="props.val[0] == '$'" :score="props.val.substring(1)"></score>
     <span v-else class="val">{{ props.val }}</span>
   </span>
 </template>

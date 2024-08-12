@@ -5,29 +5,29 @@
     align-items: center;
   }
   .note {
-    color: var(--colour-font);
+    color: var(--color-font);
   }
   .note>* {
     width: 100%;
     text-align: center;
   }
   .note .title {
-    font-size: var(--font-size-sm);
+    font-size: 80%;
   }
   .note .msg {
-    font-size: var(--font-size-lg);
+    font-size: 150%;
   }
   .note .score {
-    font-size: var(--font-size-lg);
+    font-size: 150%;
   }
   .score-page {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin: var(--score-page-margin) 0;
+    margin: 1.5rem 0;
   }
   .score-list {
-    height: var(--score-list-height);
+    height: 20rem;
     overflow: scroll;
   }
   .score-item {
@@ -36,29 +36,29 @@
     align-items: center;
     justify-content: space-between;
     max-width: 80%;
-    width: var(--score-width);
-    background-color: var(--colour-theme-bg);
-    border-radius: 0 0 var(--radius-md) 0;
-    border-bottom: var(--border-width-md) solid var(--colour-border);
-    margin-bottom: var(--score-margin);
-    padding: var(--score-padding);
+    width: 20rem;
+    background-color: var(--color-theme-bg);
+    border-radius: 0 0 .8rem 0;
+    border-bottom: 2px solid var(--color-border);
+    margin-bottom: .4rem;
+    padding: .6rem;
   }
   .score-item .score {
-    font-size: var(--font-size-lg);
+    font-size: 150%;
   }
   .score-item .time {
-    font-size: var(--font-size-sm);
-    color: var(--colour-font-shallow);
+    font-size: 80%;
+    color: var(--color-font-shallow);
   }
   .overall {
     box-sizing: border-box;
     text-align: center;
-    width: var(--overall-width);
+    width: 20rem;
     max-width: 100%;
     overflow-x: scroll;
     overflow-y: hidden;
     text-wrap: nowrap;
-    margin: var(--overall-margin) 0;
+    margin: 1rem 0;
   }
 </style>
 
@@ -82,8 +82,8 @@
     <div v-show="page == 1" class="score-page">
       <ul class="score-list">
         <li v-for="v in scores_table?.slice().reverse()" :key="v.time" class="score-item">
-          <score :score="v.score"></score>
-          <span class="time">{{ getTimeDesc(v.time) }}</span>
+          <score :score="format_score(v.score)"></score>
+          <span class="time">{{ desc_time(v.time) }}</span>
         </li>
       </ul>
       <div class="overall">
@@ -118,31 +118,34 @@
 
   const facelet_solved = 'UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB'
   const prepare_time = 15, prepare_time_half = 8, voice_result_in_ms_threshold = 60
-  const cheat_sol_threshold = 14
-  const max_move_records = 500
+  const cheating_sol_threshold = 14
+  const max_recordable_moves = 500
 
   const make_move_buf = () => '    '.split('')
-  type scores_list = {
+  type score_item = {
     time: number,
-    score: string,
-    score_raw: number,
-    steps: number
-  }[]
-  let page = ref(0), scores_table: Reactive<scores_list> | null = null, data = ref({})
+    score: number,
+    steps: number,
+    best: number,
+    worst: number,
+    ao5: number,
+    best_ao5: number
+  }
+  let page = ref(0), scores_table: Reactive<score_item[]> | null = null, data = ref({})
   let conn: GanCubeConnection | null = null, cube_player: TwistyPlayer | null = null
   let conn_status = ref(false), conn_loading = ref(false), conn_premove_buf = '', conn_synced = ref(false)
   let cube_status = ref(false)
   let note_msg = ref(''), note_title = ref(''), note_score = ref('')
-  type timer_clocks_list = {
+  type timer_clock_item = {
     id: number,
     type: string
-  }[]
-  let earphone_mode = ref(false), timer_move_buf = make_move_buf(), timer_clocks: timer_clocks_list = []
+  }
+  let earphone_mode = ref(false), timer_move_buf = make_move_buf(), timer_clocks: timer_clock_item[] = []
   let timer_ready_status = false, timer_status = false,
     timer_move_events: GanCubeMove[] = [],
     timer_auto_go_timestamp = 0
   
-  function getDateDesc(time: number) {
+  function desc_date(time: number) {
     let date = new Date(time)
     let y, m, d
     y = date.getFullYear()
@@ -166,10 +169,10 @@
     }
     return `${y}/${m}/${d} `
   }
-  function getTimeDesc(time: number, has_s = false) {
+  function desc_time(time: number, has_s = false) {
     let date = new Date(time)
     let dateText, h, i, s
-    dateText = getDateDesc(time)
+    dateText = desc_date(time)
     h = `${date.getHours()}`
     i = `${date.getMinutes()}`.padStart(2, '0')
     s = `${date.getSeconds()}`.padStart(2, '0')
@@ -185,24 +188,28 @@
     let dec = Math.floor((num - int) * 10 ** dig)
     return `${int}.${`${dec}`.padStart(dig, '0')}`
   }
-  function format_sec(sec: number, dig = 3, add_zero = true) {
+  function format_score_sec(sec: number, dig = 3, add_zero = true) {
     let parts = `${floor_dig(sec, dig)}`.split('.')
     if (add_zero)
       parts[0] = parts[0].padStart(2, '0')
     return parts.join('.')
   }
-  function format_time(time: number, ms = true) {
+  function format_score(time: number, ms = true) {
+    if (! Number.isFinite(time))
+      return '-'
     if (time >= 60)
-      return `${Math.floor(time / 60)}:${format_sec(time % 60, ms ? 3 : 0)}`
-    return `${format_sec(time, ms ? 3 : 0, false)}`
+      return `${Math.floor(time / 60)}:${format_score_sec(time % 60, ms ? 3 : 0)}`
+    return `${format_score_sec(time, ms ? 3 : 0, false)}`
   }
-  function voice_time(time: number, dig = 0) {
+  function voice_score(time: number, dig = 0) {
+    if (! Number.isFinite(time))
+      return ''
     let m = Math.floor(time / 60)
     let s = time % 60
     if (m > 0)
       return `${m} minute${time >= 60 * 2 ? 's' : ''}`
-        + ` ${s > 0 ? format_sec(s, dig).replace(/^0/g, 'o') : ''}.`
-    return `${format_sec(s, dig)}.`
+        + ` ${s > 0 ? format_score_sec(s, dig).replace(/^0/g, 'o') : ''}.`
+    return `${format_score_sec(s, dig)}.`
   }
 
   function cube() {
@@ -219,56 +226,29 @@
     document.querySelector('#cube')!.append(cube_player)
   }
   function scores() {
-    let initial = false
     if (! scores_table) {
       if (! localStorage.getItem('scores'))
         localStorage.setItem('scores', JSON.stringify([]))
-      scores_table = reactive<scores_list>(JSON.parse(localStorage.getItem('scores')!))
-      initial = true
+      scores_table = reactive<score_item[]>(JSON.parse(localStorage.getItem('scores')!))
     }
     else {
       localStorage.setItem('scores', JSON.stringify(scores_table))
     }
     
-    let sum = 0, len = scores_table.length, overall_best = Infinity, overall_worst = - Infinity
-    for (let v of scores_table) {
-      sum += v.score_raw
-      if (v.score_raw < overall_best)
-        overall_best = v.score_raw
-      if (v.score_raw > overall_worst)
-        overall_worst = v.score_raw
+    let last = scores_table[scores_table.length - 1] || {
+      score: Infinity,
+      ao5: Infinity,
+      best_ao5: Infinity,
+      best: Infinity,
+      worst: Infinity
     }
-    let best = len ? format_time(overall_best) : '-',
-      worst = len ? format_time(overall_worst) : '-'
-    let ao5 = '-', ao5_sum = 0, ao5_best = Infinity, ao5_worst = - Infinity
-    if (len >= 5) {
-      for (let i = len - 1 - 5 + 1; i < len; i ++) {
-        let v = scores_table[i]
-        ao5_sum += v.score_raw
-        if (v.score_raw < ao5_best)
-          ao5_best = v.score_raw
-        if (v.score_raw > ao5_worst)
-          ao5_worst = v.score_raw
-      }
-      ao5 = format_time((ao5_sum - ao5_best - ao5_worst) / (5 - 2))
-    }
-    let last = len ? format_time(scores_table[len - 1].score_raw) : '-'
     data.value = {
-      'Counts': `${len}`,
-      'Last': `$${last}`,
-      'Ao5': `$${ao5}`,
-      'Best': `$${best}`,
-      'Worst': `$${worst}`
-    }
-    if (! initial && len > 1) {
-      if (best == last) {
-        ElMessage.success('BEST single ever!')
-        make_voice('best single ever.')
-      }
-      if (worst == last) {
-        ElMessage.info('WORST single ever!')
-        make_voice('worst single ever.')
-      }
+      'counts': `${scores_table.length}`,
+      'last': `$${format_score(last.score)}`,
+      'ao5': `$${format_score(last.ao5)}`,
+      'best ao5': `$${format_score(last.best_ao5)}`,
+      'best': `$${format_score(last.best)}`,
+      'worst': `$${format_score(last.worst)}`
     }
   }
   function make_note(msg = '', title = '', score = '') {
@@ -321,7 +301,7 @@
           cube_player!.experimentalAddMove(event.move, { cancel: false })
           if (earphone_mode.value) {
             if (timer_status) {
-              if (timer_move_events.length >= max_move_records)
+              if (timer_move_events.length >= max_recordable_moves)
                 timer_move_events.splice(1, 1)
               timer_move_events.push(event)
             }
@@ -374,7 +354,7 @@
         let kpattern = await cube_player!.experimentalModel.currentPattern.get()
         let solution = (await experimentalSolve3x3x3IgnoringCenters(kpattern)).toString()
         let facelets = patternToFacelets(kpattern)
-        if (facelets == facelet_solved || solution.split(' ').length <= cheat_sol_threshold)
+        if (facelets == facelet_solved || solution.split(' ').length <= cheating_sol_threshold)
           timer_cheat()
         else
           timer_ready()
@@ -410,7 +390,7 @@
     timer_clocks_interval(() => {
       counter --
       if (counter >= 0)
-        make_note(`${format_time(counter, false)}`, 'Inspection')
+        make_note(`${format_score(counter, false)}`, 'Inspection')
       if (counter == prepare_time_half)
         make_voice(`${prepare_time_half} seconds.`)
     }, 1000)
@@ -425,7 +405,7 @@
   }
   function timer_cheat() {
     make_note('Cheating!')
-    make_voice('no cheating. you stupid.')
+    make_voice('no cheating. you little stupid.')
   }
   function timer_go() {
     timer_ready_status = false
@@ -434,9 +414,9 @@
     timer_clocks_clear()
     timer_clocks_interval(() => {
       counter ++
-      make_note(`${format_time(counter, false)}`, 'Cubing')
+      make_note(`${format_score(counter, false)}`, 'Cubing')
       if (counter % 60 == 0)
-        make_voice(voice_time(counter))
+        make_voice(voice_score(counter))
     }, 1000)
     make_note('Go!')
     make_voice('go.')
@@ -450,16 +430,55 @@
     if (timer_auto_go_timestamp && wasted_time > 0)
       time += wasted_time
     time = time / 1000
-    let formated_time = format_time(time)
-    make_note('', '', formated_time)
+    make_note('', '', format_score(time))
+    let len = scores_table!.length, last = scores_table![len - 1] || {
+      best: Infinity,
+      worst: - Infinity,
+      best_ao5: Infinity
+    }
+    let ao5 = Infinity, ao5_sum = 0, ao5_best = Infinity, ao5_worst = - Infinity
+    if (len >= 4) {
+      for (let i = len - 4; i < len + 1; i ++) {
+        let v = scores_table![i] || {
+          score_raw: time
+        }
+        ao5_sum += v.score
+        if (v.score < ao5_best)
+          ao5_best = v.score
+        if (v.score > ao5_worst)
+          ao5_worst = v.score
+      }
+      ao5 = (ao5_sum - ao5_best - ao5_worst) / 3
+    }
     scores_table!.push({
       time: Date.now(),
-      score: formated_time,
-      score_raw: time,
-      steps: timer_move_events.length
+      score: time,
+      steps: timer_move_events.length,
+      best: Math.min(time, last.best),
+      worst: Math.max(time, last.worst),
+      ao5: ao5,
+      best_ao5: Math.min(ao5, last.best_ao5)
     })
+    // notice that `len` and `last`'d been behind the time
     scores()
-    make_voice(`done at. ${voice_time(time, time <= voice_result_in_ms_threshold ? 1 : 0)}`)
+    make_voice(`done at. ${voice_score(time, time <= voice_result_in_ms_threshold ? 1 : 0)}`)
+    if (len > 0) {
+      let voiced = false
+      if (time <= last.best) {
+        ElMessage.success('BEST single ever!')
+        make_voice(`congratulations. best single ever.`)
+        voiced = true
+      }
+      else if (time >= last.worst) {
+        ElMessage.error('WORST single ever!')
+        make_voice(`stupid. worst single ever.`)
+        voiced = true
+      }
+      if (ao5 <= last.best_ao5) {
+        ElMessage.success('BEST ao5 ever!')
+        make_voice(`${voiced ? 'and ' : 'perfect. '}best ao5 ever.`)
+      }
+    }
     timer_move_events = []
     timer_ready_status = timer_status = false
     timer_move_buf = make_move_buf()

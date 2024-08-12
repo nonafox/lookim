@@ -1,41 +1,12 @@
 :root {
-    --colour-theme: #ff5757;
-    --colour-theme-shallow: #017fff;
-    --colour-theme-bg: #f6f6ff;
-    --colour-border: #ff5757;
-    --colour-font: #ff5757;
-    --colour-font-shallow: #ff9a9a;
-    --colour-font-shallow-plus: #ffc9c9;
-    --colour-font-rev: #f6f6ff;
-    --colour-font-str1: #ff1919;
-    --colour-font-str2:#5454fb;
-
-    --radius-lg: 1rem;
-    --radius-md: .8rem;
-    --border-width-lg: 4px;
-    --border-width-md: 2px;
-
-    --font-size-sm: 80%;
-    --font-size-md: 110%;
-    --font-size-lg: 150%;
-
-    --nav-height: 5rem;
-    --nav-zindex: 12;
-    --nav-padding: .1rem .5rem;
-    --nav-logo-height: 3rem;
-    --contents-padding: 2rem 1rem;
-    --link-img-width: 100%;
-    --copyright-margin-top: 5rem;
-    --copyright-padding: .6rem 1.8rem;
-    --copyright-radius: 1.6rem;
-    --score-page-margin: 1.5rem;
-    --score-list-height: 20rem;
-    --score-width: 20rem;
-    --score-margin: .4rem;
-    --score-padding: .6rem;
-    --overall-width: 20rem;
-    --overall-margin: 1rem;
-    --minitable-margin: .2rem;
-    --minitable-key-padding: .4rem;
-    --minitable-key-margin: .2rem;
+    --color-theme: #ff5757;
+    --color-theme-shallow: #017fff;
+    --color-theme-bg: #f6f6ff;
+    --color-border: #ff5757;
+    --color-font: #ff5757;
+    --color-font-shallow: #ff9a9a;
+    --color-font-shallow-plus: #ffc9c9;
+    --color-font-rev: #f6f6ff;
+    --color-font-str1: #ff1919;
+    --color-font-str2:#5454fb;
 }
