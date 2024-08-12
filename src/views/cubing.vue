@@ -462,8 +462,8 @@
     // notice that `len` and `last`'d been behind the time
     scores()
     make_voice(`done at. ${voice_score(time, time <= voice_result_in_ms_threshold ? 1 : 0)}`)
-    if (len > 0) {
-      let voiced = false
+    let voiced = false
+    if (len + 1 >= 2) {
       if (time <= last.best) {
         ElMessage.success('BEST single ever!')
         make_voice(`congratulations. best single ever.`)
@@ -474,10 +474,10 @@
         make_voice(`stupid. worst single ever.`)
         voiced = true
       }
-      if (ao5 <= last.best_ao5) {
-        ElMessage.success('BEST ao5 ever!')
-        make_voice(`${voiced ? 'and ' : 'perfect. '}best ao5 ever.`)
-      }
+    }
+    if (len + 1 >= 5 && ao5 <= last.best_ao5) {
+      ElMessage.success('BEST ao5 ever!')
+      make_voice(`${voiced ? 'and ' : 'perfect. '}best ao5 ever.`)
     }
     timer_move_events = []
     timer_ready_status = timer_status = false
