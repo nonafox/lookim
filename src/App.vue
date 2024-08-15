@@ -29,7 +29,7 @@
     padding: 2rem 1rem;
   }
   .copyright {
-    margin-top: 5rem;
+    margin-top: 10rem;
     padding: .6rem 1.8rem;
     border-radius: 1.6rem;
     border: 2px solid var(--color-border);

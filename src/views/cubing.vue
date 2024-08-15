@@ -4,6 +4,16 @@
     flex-direction: row;
     align-items: center;
   }
+  .connect-note {
+    box-sizing: border-box;
+    width: 100%;
+    margin-top: 5rem;
+    padding: 1rem 1.5rem;
+    color: var(--color-font);
+    font-size: 150%;
+    border-radius: 0 0 .8rem 0;
+    border-bottom: 4px solid var(--color-border);
+  }
   .note {
     color: var(--color-font);
   }
@@ -27,21 +37,37 @@
     margin: 1.5rem 0;
   }
   .score-list {
-    height: 20rem;
-    overflow: scroll;
+    box-sizing: border-box;
+    max-width: 100%;
+    width: 20rem;
+    height: 18rem;
+    padding: 0;
+    overflow: hidden scroll;
   }
   .score-item {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    max-width: 80%;
-    width: 20rem;
+    transition: all .3s ease;
+    box-sizing: border-box;
+    width: 100%;
     background-color: var(--color-theme-bg);
     border-radius: 0 0 .8rem 0;
     border-bottom: 2px solid var(--color-border);
     margin-bottom: .4rem;
     padding: .6rem;
+  }
+  .score-item-main {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .score-item-note {
+    width: 100%;
+    margin-top: .5rem;
+    color: var(--color-font);
+  }
+  .score-item:active {
+    background-color: var(--color-theme-bg-hover);
   }
   .score-item .score {
     font-size: 150%;
@@ -50,21 +76,42 @@
     font-size: 80%;
     color: var(--color-font-shallow);
   }
+  .score-item-folded {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: .2rem;
+  }
+  .score-list-move,
+  .score-list-enter-active,
+  .score-list-leave-active {
+    transition: all .3s ease;
+  }
+  .score-list-enter-from,
+  .score-list-leave-to {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  .score-list-leave-active {
+    position: absolute;
+  }
   .overall {
     box-sizing: border-box;
     text-align: center;
-    width: 20rem;
-    max-width: 100%;
-    overflow-x: scroll;
-    overflow-y: hidden;
+    width: 100vw;
+    overflow: scroll hidden;
     text-wrap: nowrap;
     margin: 1rem 0;
+    padding: .2rem;
   }
 </style>
 
 <template>
   <div class="kit">
-    <el-button @click="conn_status ? disconnect() : connect()" v-loading="conn_loading" circle :type="conn_status ? 'primary' : ''">
+    <el-button @click="conn_status ? disconnect() : connect()" v-loading="conn_loading"
+        circle :type="conn_status ? 'primary' : ''">
       {{ conn_status ? '💘' : '💓' }}
     </el-button>
     <el-button v-show="conn_status" @click="reset_cube" circle>
@@ -73,19 +120,40 @@
     <el-button v-show="conn_status" @click="switch_earphone_mode" circle :type="earphone_mode ? 'primary' : ''">
       💖
     </el-button>
-    <el-button v-show="conn_status" @click="switch_page" circle>
+    <el-button @click="switch_page" circle>
       {{ page ? '♋' : '♉' }}
     </el-button>
   </div>
-  <div v-show="conn_status">
-    <div v-show="page == 0" v-loading="conn_status && ! conn_synced" id="cube"></div>
+  <div>
+    <div v-show="page == 0">
+      <div v-show="conn_status" v-loading="conn_status && ! conn_synced" id="cube"></div>
+      <div v-show="! conn_status" class="connect-note">
+        Connect the cube to show more here...
+      </div>
+    </div>
     <div v-show="page == 1" class="score-page">
-      <ul class="score-list">
-        <li v-for="v in scores_table?.slice().reverse()" :key="v.time" class="score-item">
-          <score :score="format_score(v.score)"></score>
-          <span class="time">{{ desc_time(v.time) }}</span>
+      <transition-group name="score-list" tag="ul" class="score-list"
+          @touchmove="scores_unfolded_items.clear()">
+        <li v-for="v in scores_list.toReversed()" :key="v.time"
+            @click="click_score_item(v.time)" class="score-item">
+          <div class="score-item-main">
+            <score :score="format_score(v.score)"></score>
+            <transition name="el-zoom-in-bottom" mode="out-in">
+              <div v-if="scores_unfolded_items.has(v.time)" class="score-item-folded">
+                <el-button @click.stop="score_item_note(v.time)"
+                    circle :type="v.note ? 'primary' : ''">
+                  ❤
+                </el-button>
+                <el-button @click.stop="score_item_del(v.time)" circle>
+                  💔
+                </el-button>
+              </div>
+              <span v-else class="time">{{ desc_time(v.time) }}</span>
+            </transition>
+          </div>
+          <div v-if="v.note" class="score-item-note">❤ {{ v.note }}</div>
         </li>
-      </ul>
+      </transition-group>
       <div class="overall">
         <mini-table v-for="(v, k) in data" :name="k" :val="v"></mini-table>
       </div>
@@ -101,15 +169,16 @@
 </template>
 
 <script lang="ts" setup>
-  import type { Ref, Reactive } from 'vue'
+  import type { Ref } from 'vue'
   import type { GanCubeConnection, GanCubeMove } from 'gan-web-bluetooth'
 
-  import { ref, reactive, inject, onMounted, onBeforeUnmount } from 'vue'
-  import { ElMessage } from 'element-plus'
+  import { ref, inject, watch, onMounted, onBeforeUnmount } from 'vue'
+  import { ElMessage, ElMessageBox } from 'element-plus'
   import { connectGanCube, cubeTimestampLinearFit, now } from 'gan-web-bluetooth'
   import { TwistyPlayer } from 'cubing/twisty'
   import { experimentalSolve3x3x3IgnoringCenters } from 'cubing/search'
   import { patternToFacelets, faceletsToPattern } from '../utils/afedotov'
+  import { json2str, str2json } from '../utils/json'
   import Score from '../components/score.vue'
   import MiniTable from '../components/minitable.vue'
 
@@ -129,18 +198,27 @@
     best: number,
     worst: number,
     ao5: number,
-    best_ao5: number
+    best_ao5: number,
+    note: string,
+    flags: {
+      best?: boolean,
+      worst?: boolean,
+      best_ao5?: boolean
+    }
   }
-  let page = ref(0), scores_table: Reactive<score_item[]> | null = null, data = ref({})
-  let conn: GanCubeConnection | null = null, cube_player: TwistyPlayer | null = null
-  let conn_status = ref(false), conn_loading = ref(false), conn_premove_buf = '', conn_synced = ref(false)
-  let cube_status = ref(false)
-  let note_msg = ref(''), note_title = ref(''), note_score = ref('')
+  const page = ref(0), scores_list = ref([] as score_item[]),
+    scores_unfolded_items = ref(new Set<number>()), data = ref({})
+  let conn: GanCubeConnection | null = null, cube_player: TwistyPlayer | null = null,
+    conn_premove_buf = ''
+  const conn_status = ref(false), conn_loading = ref(false), conn_synced = ref(false),
+    cube_status = ref(false)
+  const note_msg = ref(''), note_title = ref(''), note_score = ref('')
   type timer_clock_item = {
     id: number,
     type: string
   }
-  let earphone_mode = ref(false), timer_move_buf = make_move_buf(), timer_clocks: timer_clock_item[] = []
+  let timer_move_buf = make_move_buf(), timer_clocks: timer_clock_item[] = []
+  const earphone_mode = ref(false)
   let timer_ready_status = false, timer_status = false,
     timer_move_events: GanCubeMove[] = [],
     timer_auto_go_timestamp = 0
@@ -226,16 +304,13 @@
     document.querySelector('#cube')!.append(cube_player)
   }
   function scores() {
-    if (! scores_table) {
-      if (! localStorage.getItem('scores'))
-        localStorage.setItem('scores', JSON.stringify([]))
-      scores_table = reactive<score_item[]>(JSON.parse(localStorage.getItem('scores')!))
-    }
-    else {
-      localStorage.setItem('scores', JSON.stringify(scores_table))
-    }
-    
-    let last = scores_table[scores_table.length - 1] || {
+    if (! localStorage.getItem('scores'))
+      localStorage.setItem('scores', json2str([]))
+    scores_list.value = str2json(localStorage.getItem('scores')!) as score_item[]
+  }
+  watch(scores_list, () => {
+    localStorage.setItem('scores', json2str(scores_list.value))
+    let last = scores_list.value[scores_list.value.length - 1] || {
       score: Infinity,
       ao5: Infinity,
       best_ao5: Infinity,
@@ -243,14 +318,15 @@
       worst: Infinity
     }
     data.value = {
-      'counts': `${scores_table.length}`,
+      'counts': `${scores_list.value.length}`,
       'last': `$${format_score(last.score)}`,
       'ao5': `$${format_score(last.ao5)}`,
       'best ao5': `$${format_score(last.best_ao5)}`,
       'best': `$${format_score(last.best)}`,
       'worst': `$${format_score(last.worst)}`
     }
-  }
+    scores_unfolded_items.value.clear()
+  }, { deep: true })
   function make_note(msg = '', title = '', score = '') {
     note_msg.value = msg
     note_title.value = title
@@ -272,14 +348,14 @@
     }
     catch {
       ElMessage.error('Failed!')
-      throw new Error
+      throw new Error('Connection failed.')
     }
     finally {
       conn_loading.value = false
     }
     conn_status.value = true
     ElMessage.success('Connected!')
-    conn.events$.subscribe(async (event) => {
+    conn.events$.subscribe(async event => {
       if (event.type == 'FACELETS') {
         if (event.facelets != facelet_solved) {
           let kpattern = faceletsToPattern(event.facelets)
@@ -320,7 +396,6 @@
     await conn.sendCubeCommand({ type: 'REQUEST_FACELETS' })
   }
   function everything_off(handle_earphone_mode = false) {
-    conn_status.value = conn_synced.value
     if (handle_earphone_mode)
       earphone_mode.value = false
     conn_premove_buf = ''
@@ -333,7 +408,9 @@
       return 0
     conn.disconnect()
     conn = null
+    conn_status.value = conn_synced.value = false
     everything_off(true)
+    page.value = 0
   }
   async function reset_cube() {
     await conn!.sendCubeCommand({ type: 'REQUEST_RESET' })
@@ -350,7 +427,7 @@
     timer_move_buf.splice(0, 1)
     timer_move_buf.push(move)
     if (earphone_mode.value && ! timer_status) {
-      if (timer_move_buf.every((val) => val == timer_move_buf[0])) {
+      if (timer_move_buf.every(val => val == timer_move_buf[0])) {
         let kpattern = await cube_player!.experimentalModel.currentPattern.get()
         let solution = (await experimentalSolve3x3x3IgnoringCenters(kpattern)).toString()
         let facelets = patternToFacelets(kpattern)
@@ -429,66 +506,224 @@
     let wasted_time = timer_move_events[0].localTimestamp! - timer_auto_go_timestamp
     if (timer_auto_go_timestamp && wasted_time > 0)
       time += wasted_time
-    time = time / 1000
+    time /= 1000
     make_note('', '', format_score(time))
-    let len = scores_table!.length, last = scores_table![len - 1] || {
+    let len = scores_list.value.length, last = scores_list.value[len - 1] || {
       best: Infinity,
       worst: - Infinity,
       best_ao5: Infinity
     }
-    let ao5 = Infinity, ao5_sum = 0, ao5_best = Infinity, ao5_worst = - Infinity
-    if (len >= 4) {
-      for (let i = len - 4; i < len + 1; i ++) {
-        let v = scores_table![i] || {
-          score_raw: time
+    const ao = (n: number) => {
+      let ao_sum = 0, ao_best = Infinity, ao_worst = - Infinity
+      if (len + 1 >= n) {
+        for (let i = len - (n - 1); i < len + 1; i ++) {
+          let v = scores_list.value[i] || {
+            score: time
+          }
+          ao_sum += v.score
+          if (v.score < ao_best)
+          ao_best = v.score
+          if (v.score > ao_worst)
+          ao_worst = v.score
         }
-        ao5_sum += v.score
-        if (v.score < ao5_best)
-          ao5_best = v.score
-        if (v.score > ao5_worst)
-          ao5_worst = v.score
+        return + ((ao_sum - ao_best - ao_worst) / (n - 2)).toFixed(3)
       }
-      ao5 = (ao5_sum - ao5_best - ao5_worst) / 3
+      return Infinity
     }
-    scores_table!.push({
+    let ao5 = ao(5)
+    let body = {
       time: Date.now(),
       score: time,
       steps: timer_move_events.length,
       best: Math.min(time, last.best),
       worst: Math.max(time, last.worst),
       ao5: ao5,
-      best_ao5: Math.min(ao5, last.best_ao5)
-    })
+      best_ao5: Math.min(ao5, last.best_ao5),
+      note: '',
+      flags: {}
+    } as score_item
     // notice that `len` and `last`'d been behind the time
-    scores()
     make_voice(`done at. ${voice_score(time, time <= voice_result_in_ms_threshold ? 1 : 0)}`)
     let voiced = false
-    if (len + 1 >= 2) {
-      if (time <= last.best) {
-        ElMessage.success('BEST single ever!')
-        make_voice(`congratulations. best single ever.`)
-        voiced = true
-      }
-      else if (time >= last.worst) {
+    if (time <= last.best) {
+      body.flags.best = true
+      ElMessage.success('BEST single ever!')
+      make_voice(`congratulations. best single ever.`)
+      voiced = true
+    }
+    if (time >= last.worst) {
+      body.flags.worst = true
+      if (! voiced) {
         ElMessage.error('WORST single ever!')
         make_voice(`stupid. worst single ever.`)
         voiced = true
       }
     }
     if (len + 1 >= 5 && ao5 <= last.best_ao5) {
+      body.flags.best_ao5 = true
       ElMessage.success('BEST ao5 ever!')
-      make_voice(`${voiced ? 'and ' : 'perfect. '}best ao5 ever.`)
+      make_voice(`${voiced ? 'and ' : 'perfect. '}best AO5 ever.`)
     }
+    scores_list.value.push(body)
     timer_move_events = []
     timer_ready_status = timer_status = false
     timer_move_buf = make_move_buf()
     timer_auto_go_timestamp = 0
   }
+  function click_score_item(time_id: number) {
+    if (scores_unfolded_items.value.has(time_id))
+      scores_unfolded_items.value.delete(time_id)
+    else
+      scores_unfolded_items.value.add(time_id)
+  }
+  function score_item_note(time_id: number) {
+    let v = scores_list.value.find(v => v.time == time_id)!
+    ElMessageBox.prompt(
+      'Write something to like it! Or leave a blank to cancel the like.',
+      'Like',
+      {
+        confirmButtonText: 'OK',
+        cancelButtonText: 'Cancel',
+        inputValue: v.note
+      }
+    ).then(({ value }) => {
+      v.note = value
+      if (value)
+        ElMessage.success('Liked!')
+      else
+        ElMessage.info('Canceled like!')
+    })
+  }
+  function score_item_del(time_id: number) {
+    const doit = () => {
+      let k = scores_list.value.findIndex(v => v.time == time_id)
+      let v = scores_list.value[k]
+
+      const handle_ao = (
+          n: number,
+          write_fn: (item: score_item, val: number) => void) => {
+        if (scores_list.value.length < n)
+          return
+        let buf: number[] = [], sum = 0, min = Infinity, max = - Infinity
+        let counts = 0
+        for (let i = Math.max(k - (n - 1), 0);
+            i <= Math.min(k + (n - 1), scores_list.value.length - 1);
+            i ++) {
+          let curr = scores_list.value[i]
+          if (i != k) {
+            counts ++
+            buf.push(curr.score)
+            if (buf.length > n) {
+              sum += - buf[0] + curr.score
+              buf.splice(0, 1)
+            }
+            else {
+              sum += curr.score
+            }
+            max = Math.max(...buf)
+            min = Math.min(...buf)
+
+            if (buf.length >= n) {
+              let ao = + ((sum - min - max) / (n - 2)).toFixed(3)
+              write_fn(scores_list.value[i], ao)
+            }
+            else if (counts < n) {
+              write_fn(scores_list.value[i], Infinity)
+            }
+          }
+        }
+      }
+      const handle_extremum = (
+          extreme: number,
+          read_single_fn: (item: score_item) => number,
+          read_extreme_fn: (item: score_item) => number,
+          read_extreme_flag_fn: (item: score_item) => boolean | undefined,
+          write_extreme_flag_fn: (item: score_item, val: boolean) => void,
+          write_extreme_fn: (item: score_item, val: number) => void) => {
+        if (scores_list.value.length < 2)
+          return
+        if (read_extreme_flag_fn(v)) {
+          const compare = extreme > 0
+            ? (a: number, b: number) => isFinite(a) && a >= b
+            : (a: number, b: number) => isFinite(a) && a <= b
+          let original = v.score, original_holder, holder_val
+          if (k - 1 >= 0) {
+            original_holder = scores_list.value[k - 1]
+            holder_val = read_extreme_fn(original_holder)
+          }
+          else {
+            original_holder = scores_list.value[1]
+            write_extreme_flag_fn(original_holder, true)
+            holder_val = read_single_fn(original_holder)
+          }
+          for (let i = k + 1; i <= scores_list.value.length - 1; i ++) {
+            let curr = scores_list.value[i]
+            let curr_val = read_single_fn(curr)
+            if (compare(curr_val, original))
+              break
+            if (compare(curr_val, holder_val)) {
+              holder_val = curr_val
+              write_extreme_flag_fn(curr, true)
+            }
+            else {
+              write_extreme_flag_fn(curr, false)
+            }
+            write_extreme_fn(curr, holder_val)
+          }
+        }
+      }
+
+      handle_ao(5, (item, val) => item.ao5 = val)
+      handle_extremum(
+        - Infinity,
+        item => item.score,
+        item => item.best,
+        item => item.flags.best,
+        (item, val) => item.flags.best = val,
+        (item, val) => item.best = val
+      )
+      handle_extremum(
+        Infinity,
+        item => item.score,
+        item => item.worst,
+        item => item.flags.worst,
+        (item, val) => item.flags.worst = val,
+        (item, val) => item.worst = val
+      )
+      handle_extremum(
+        - Infinity,
+        item => item.ao5,
+        item => item.best_ao5,
+        item => item.flags.best_ao5,
+        (item, val) => item.flags.best_ao5 = val,
+        (item, val) => item.best_ao5 = val
+      )
+
+      scores_list.value.splice(k, 1)
+    }
+
+    ElMessageBox.prompt(
+      `Please input 🐏's birthday in the form of "2008/04/24" to confirm the deletion.`,
+      'Warning! You are trying to DELETE something.',
+      {
+        confirmButtonText: 'OK',
+        cancelButtonText: 'Cancel'
+      }
+    ).then(({ value }) => {
+      if (value == '2008/07/23') {
+        doit()
+        ElMessage.success('Deleted!')
+      }
+      else {
+        ElMessage.error('NOT deleted.')
+      }
+    })
+  }
 
   onMounted(() => {
     cube()
     scores()
-    cube_player!.experimentalModel.currentPattern.addFreshListener(async (kpattern) => {
+    cube_player!.experimentalModel.currentPattern.addFreshListener(async kpattern => {
       let facelets = patternToFacelets(kpattern)
       cube_status.value = facelets == facelet_solved
       if (cube_status.value && timer_status)
