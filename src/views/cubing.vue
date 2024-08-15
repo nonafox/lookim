@@ -14,6 +14,9 @@
     border-radius: 0 0 .8rem 0;
     border-bottom: 4px solid var(--color-border);
   }
+  #cube {
+    margin: 2.5rem 0;
+  }
   .note {
     color: var(--color-font);
   }
@@ -133,7 +136,7 @@
         <li v-for="v in scores_list.toReversed()" :key="v.time"
             @click="click_score_item(v.time)" class="score-item">
           <div class="score-item-main">
-            <score :score="format_score(v.score)"></score>
+            <score-span :score="format_score(v.score)"></score-span>
             <transition name="el-zoom-in-bottom" mode="out-in">
               <div v-if="scores_unfolded_items.has(v.time)" class="score-item-folded">
                 <el-button @click.stop="score_item_note(v.time)"
@@ -144,14 +147,14 @@
                   💔
                 </el-button>
               </div>
-              <timespan v-else :time="desc_time(v.time)"></timespan>
+              <time-span v-else :time="desc_time(v.time)"></time-span>
             </transition>
           </div>
           <div v-if="v.note" class="score-item-note">❤ {{ v.note }}</div>
         </li>
       </transition-group>
       <div class="overall">
-        <mini-table v-for="(v, k) in data" :name="k" :val="v"></mini-table>
+        <kv-span v-for="(v, k) in data" :name="k" :val="v"></kv-span>
       </div>
     </div>
     <div class="note">
@@ -176,9 +179,9 @@
   import { desc_time, format_score, voice_score } from '../utils/funcs.ts'
   import { patternToFacelets, faceletsToPattern } from '../utils/afedotov'
   import { json2str, str2json } from '../utils/json'
-  import Score from '../components/score.vue'
-  import MiniTable from '../components/minitable.vue'
-  import Timespan from '../components/timespan.vue'
+  import ScoreSpan from '../components/scorespan.vue'
+  import KvSpan from '../components/kvspan.vue'
+  import TimeSpan from '../components/timespan.vue'
 
   let title: Ref<string> = inject('title')!
   title.value = 'Cubing base'
@@ -562,33 +565,37 @@
           }
         }
       }
+      enum extreme_orient { neg, pos }
+      enum extreme_mode { single, ao }
       const handle_extremum = (
-          extreme: number,
-          read_single_fn: (item: score_item) => number,
+          orient: extreme_orient,
+          mode: extreme_mode,
+          read_val_fn: (item: score_item) => number,
           read_extreme_fn: (item: score_item) => number,
           read_extreme_flag_fn: (item: score_item) => boolean | undefined,
           write_extreme_flag_fn: (item: score_item, val: boolean) => void,
           write_extreme_fn: (item: score_item, val: number) => void) => {
         if (scores_list.value.length < 2)
           return
-        if (read_extreme_flag_fn(v)) {
-          const compare = extreme > 0
+        if (mode == extreme_mode.ao || read_extreme_flag_fn(v)) {
+          const compare = orient == extreme_orient.pos
             ? (a: number, b: number) => isFinite(a) && a >= b
             : (a: number, b: number) => isFinite(a) && a <= b
-          let original = v.score, original_holder, holder_val
+          let original = read_val_fn(v), original_holder, holder_val
           if (k - 1 >= 0) {
             original_holder = scores_list.value[k - 1]
             holder_val = read_extreme_fn(original_holder)
           }
           else {
             original_holder = scores_list.value[1]
-            write_extreme_flag_fn(original_holder, true)
-            holder_val = read_single_fn(original_holder)
+            holder_val = read_val_fn(original_holder)
+            if (isFinite(holder_val))
+              write_extreme_flag_fn(original_holder, true)
           }
           for (let i = k + 1; i <= scores_list.value.length - 1; i ++) {
             let curr = scores_list.value[i]
-            let curr_val = read_single_fn(curr)
-            if (compare(curr_val, original))
+            let curr_val = read_val_fn(curr)
+            if (isFinite(original) && compare(curr_val, original))
               break
             if (compare(curr_val, holder_val)) {
               holder_val = curr_val
@@ -604,7 +611,8 @@
 
       handle_ao(5, (item, val) => item.ao5 = val)
       handle_extremum(
-        - Infinity,
+        extreme_orient.neg,
+        extreme_mode.single,
         item => item.score,
         item => item.best,
         item => item.flags.best,
@@ -612,7 +620,8 @@
         (item, val) => item.best = val
       )
       handle_extremum(
-        Infinity,
+        extreme_orient.pos,
+        extreme_mode.single,
         item => item.score,
         item => item.worst,
         item => item.flags.worst,
@@ -620,7 +629,8 @@
         (item, val) => item.worst = val
       )
       handle_extremum(
-        - Infinity,
+        extreme_orient.neg,
+        extreme_mode.ao,
         item => item.ao5,
         item => item.best_ao5,
         item => item.flags.best_ao5,

@@ -9,10 +9,13 @@ declare module 'vue' {
   export interface GlobalComponents {
     ElButton: typeof import('element-plus/es')['ElButton']
     ElCollapseTransition: typeof import('element-plus/es')['ElCollapseTransition']
+    Kvspan: typeof import('./src/components/kvspan.vue')['default']
+    KvSpan: typeof import('./src/components/kv-span.vue')['default']
     Minitable: typeof import('./src/components/minitable.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     Score: typeof import('./src/components/score.vue')['default']
+    Scorespan: typeof import('./src/components/scorespan.vue')['default']
     Time: typeof import('./src/components/time.vue')['default']
     Timespan: typeof import('./src/components/timespan.vue')['default']
   }

@@ -26,7 +26,7 @@
 </template>
 
 <script lang="ts" setup>
-  import Score from './score.vue'
+  import Score from './scorespan.vue'
 
   const props = defineProps<{
     name: string,
