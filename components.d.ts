@@ -13,6 +13,8 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     Score: typeof import('./src/components/score.vue')['default']
+    Time: typeof import('./src/components/time.vue')['default']
+    Timespan: typeof import('./src/components/timespan.vue')['default']
   }
   export interface ComponentCustomProperties {
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']

@@ -72,10 +72,6 @@
   .score-item .score {
     font-size: 150%;
   }
-  .score-item .time {
-    font-size: 80%;
-    color: var(--color-font-shallow);
-  }
   .score-item-folded {
     box-sizing: border-box;
     display: flex;
@@ -148,7 +144,7 @@
                   💔
                 </el-button>
               </div>
-              <span v-else class="time">{{ desc_time(v.time) }}</span>
+              <timespan v-else :time="desc_time(v.time)"></timespan>
             </transition>
           </div>
           <div v-if="v.note" class="score-item-note">❤ {{ v.note }}</div>
@@ -177,10 +173,12 @@
   import { connectGanCube, cubeTimestampLinearFit, now } from 'gan-web-bluetooth'
   import { TwistyPlayer } from 'cubing/twisty'
   import { experimentalSolve3x3x3IgnoringCenters } from 'cubing/search'
+  import { desc_time, format_score, voice_score } from '../utils/funcs.ts'
   import { patternToFacelets, faceletsToPattern } from '../utils/afedotov'
   import { json2str, str2json } from '../utils/json'
   import Score from '../components/score.vue'
   import MiniTable from '../components/minitable.vue'
+  import Timespan from '../components/timespan.vue'
 
   let title: Ref<string> = inject('title')!
   title.value = 'Cubing base'
@@ -222,73 +220,6 @@
   let timer_ready_status = false, timer_status = false,
     timer_move_events: GanCubeMove[] = [],
     timer_auto_go_timestamp = 0
-  
-  function desc_date(time: number) {
-    let date = new Date(time)
-    let y, m, d
-    y = date.getFullYear()
-    m = date.getMonth() + 1
-    d = date.getDate()
-    let cdate = new Date()
-    let cy, cm, cd
-    cy = cdate.getFullYear()
-    cm = cdate.getMonth() + 1
-    cd = cdate.getDate()
-    if (y == cy) {
-      if (m == cm) {
-        if (d == cd)
-          return ''
-        else if (d == cd - 1)
-          return 'yday '
-        else if (d == cd + 1)
-          return 'tmrw '
-      }
-      return `${m}/${d} `
-    }
-    return `${y}/${m}/${d} `
-  }
-  function desc_time(time: number, has_s = false) {
-    let date = new Date(time)
-    let dateText, h, i, s
-    dateText = desc_date(time)
-    h = `${date.getHours()}`
-    i = `${date.getMinutes()}`.padStart(2, '0')
-    s = `${date.getSeconds()}`.padStart(2, '0')
-    if (has_s)
-      return `${dateText}${h}:${i}:${s}`
-    else
-      return `${dateText}${h}:${i}`
-  }
-  function floor_dig(num: number, dig: number) {
-    let int = Math.floor(num)
-    if (dig <= 0)
-      return `${int}`
-    let dec = Math.floor((num - int) * 10 ** dig)
-    return `${int}.${`${dec}`.padStart(dig, '0')}`
-  }
-  function format_score_sec(sec: number, dig = 3, add_zero = true) {
-    let parts = `${floor_dig(sec, dig)}`.split('.')
-    if (add_zero)
-      parts[0] = parts[0].padStart(2, '0')
-    return parts.join('.')
-  }
-  function format_score(time: number, ms = true) {
-    if (! Number.isFinite(time))
-      return '-'
-    if (time >= 60)
-      return `${Math.floor(time / 60)}:${format_score_sec(time % 60, ms ? 3 : 0)}`
-    return `${format_score_sec(time, ms ? 3 : 0, false)}`
-  }
-  function voice_score(time: number, dig = 0) {
-    if (! Number.isFinite(time))
-      return ''
-    let m = Math.floor(time / 60)
-    let s = time % 60
-    if (m > 0)
-      return `${m} minute${time >= 60 * 2 ? 's' : ''}`
-        + ` ${s > 0 ? format_score_sec(s, dig).replace(/^0/g, 'o') : ''}.`
-    return `${format_score_sec(s, dig)}.`
-  }
 
   function cube() {
     cube_player = new TwistyPlayer({
@@ -605,13 +536,11 @@
         if (scores_list.value.length < n)
           return
         let buf: number[] = [], sum = 0, min = Infinity, max = - Infinity
-        let counts = 0
         for (let i = Math.max(k - (n - 1), 0);
             i <= Math.min(k + (n - 1), scores_list.value.length - 1);
             i ++) {
           let curr = scores_list.value[i]
           if (i != k) {
-            counts ++
             buf.push(curr.score)
             if (buf.length > n) {
               sum += - buf[0] + curr.score
@@ -620,14 +549,14 @@
             else {
               sum += curr.score
             }
-            max = Math.max(...buf)
-            min = Math.min(...buf)
 
             if (buf.length >= n) {
+              max = Math.max(...buf)
+              min = Math.min(...buf)
               let ao = + ((sum - min - max) / (n - 2)).toFixed(3)
               write_fn(scores_list.value[i], ao)
             }
-            else if (counts < n) {
+            else if ((i > k ? i - 1 : i) < n - 1) {
               write_fn(scores_list.value[i], Infinity)
             }
           }
