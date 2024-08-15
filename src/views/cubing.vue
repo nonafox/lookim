@@ -161,7 +161,7 @@
       <div class="title">{{ note_title }}</div>
       <div class="msg">{{ note_msg }}</div>
       <div class="score">
-        <score v-show="note_score" :score="note_score"></score>
+        <score-span v-show="note_score" :score="note_score"></score-span>
       </div>
     </div>
   </div>
@@ -176,8 +176,14 @@
   import { connectGanCube, cubeTimestampLinearFit, now } from 'gan-web-bluetooth'
   import { TwistyPlayer } from 'cubing/twisty'
   import { experimentalSolve3x3x3IgnoringCenters } from 'cubing/search'
-  import { desc_time, format_score, voice_score } from '../utils/funcs.ts'
-  import { patternToFacelets, faceletsToPattern } from '../utils/afedotov'
+  import {
+    facelet_solved,
+    prepare_time, prepare_time_half, voice_result_in_ms_threshold,
+    cheating_sol_threshold,
+    max_recordable_moves
+  } from '../utils/conf.ts'
+  import { desc_time, format_score, voice_score, format_sol } from '../utils/funcs.ts'
+  import { patternToFacelets, faceletsToPattern } from '../utils/afedotovs.ts'
   import { json2str, str2json } from '../utils/json'
   import ScoreSpan from '../components/scorespan.vue'
   import KvSpan from '../components/kvspan.vue'
@@ -185,11 +191,6 @@
 
   let title: Ref<string> = inject('title')!
   title.value = 'Cubing base'
-
-  const facelet_solved = 'UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB'
-  const prepare_time = 15, prepare_time_half = 8, voice_result_in_ms_threshold = 60
-  const cheating_sol_threshold = 14
-  const max_recordable_moves = 500
 
   const make_move_buf = () => '    '.split('')
   type score_item = {
@@ -310,14 +311,13 @@
         else {
           cube_player!.experimentalAddMove(event.move, { cancel: false })
           if (earphone_mode.value) {
+            if (timer_ready_status)
+              timer_go()
             if (timer_status) {
               if (timer_move_events.length >= max_recordable_moves)
                 timer_move_events.splice(1, 1)
               timer_move_events.push(event)
             }
-            // strict logical sequences here
-            if (timer_ready_status)
-              timer_go()
             await push_move_buf(event.move)
           }
         }
@@ -465,10 +465,11 @@
       return Infinity
     }
     let ao5 = ao(5)
+    let formated_sol = format_sol(timer_move_events)
     let body = {
       time: Date.now(),
       score: time,
-      steps: timer_move_events.length,
+      steps: formated_sol.split(' ').length,
       best: Math.min(time, last.best),
       worst: Math.max(time, last.worst),
       ao5: ao5,
@@ -528,6 +529,8 @@
         ElMessage.info('Canceled like!')
     })
   }
+  enum extreme_orient { neg, pos }
+  enum extreme_mode { single, ao }
   function score_item_del(time_id: number) {
     const doit = () => {
       let k = scores_list.value.findIndex(v => v.time == time_id)
@@ -565,8 +568,6 @@
           }
         }
       }
-      enum extreme_orient { neg, pos }
-      enum extreme_mode { single, ao }
       const handle_extremum = (
           orient: extreme_orient,
           mode: extreme_mode,
