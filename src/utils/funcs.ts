@@ -1,4 +1,4 @@
-import { GanCubeMove } from 'gan-web-bluetooth'
+import type { GanCubeMove } from 'gan-web-bluetooth'
 import { sol_mse_interval_time_threshold } from './conf'
 
 export const time_sp = ' '
@@ -102,6 +102,7 @@ class notation_mat {
         : [this.mat_mse[b][1], this.mat_mse[a][0], this.mat_mse[b][0], this.mat_mse[a][1]]
   }
   // though something is odd here, it is hopefully correct
+  // fking though it is I who win the game - 2024/8/15
   private rotation_shift_params: {
     [_: string]: [number, number, number]
   } = {
@@ -211,7 +212,6 @@ const sol_mse_adaptation_table = {
 }
 export function format_sol(sol_arr: any_sol) {
   let sol = shallowly_format_sol(sol_arr, true)
-  console.log('original: ', sol)
   for (let [ reg, v1 ] of sol_mse_trans_table) {
     let v2 = sol_mse_adaptation_table[v1 as (keyof typeof sol_mse_adaptation_table)]
     sol = sol.replace(reg, `${v1} ${v2}`)
@@ -219,6 +219,5 @@ export function format_sol(sol_arr: any_sol) {
   sol = sol.replace(/_/g, ' ')
   sol = sol_kill_rotations(sol)
   sol = sol.replace(/([UFRDBLMSE]'{0,1}) \1/g, '$12')
-  console.log('formated: ', sol)
   return sol
 }

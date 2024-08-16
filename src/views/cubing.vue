@@ -54,7 +54,7 @@
     background-color: var(--color-theme-bg);
     border-radius: 0 0 .8rem 0;
     border-bottom: 2px solid var(--color-border);
-    margin-bottom: .4rem;
+    margin-bottom: 1rem;
     padding: .6rem;
   }
   .score-item-main {
@@ -66,7 +66,21 @@
   }
   .score-item-note {
     width: 100%;
-    margin-top: .5rem;
+    border-top: 1px solid var(--color-border-shallow);
+    margin-top: .6rem;
+    padding-top: .6rem;
+    color: var(--color-font);
+  }
+  .score-item-rightop {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .score-item-rightop>* {
+    margin: 0 .4rem;
+  }
+  .score-item-rightop .id {
     color: var(--color-font);
   }
   .score-item:active {
@@ -133,7 +147,7 @@
     <div v-show="page == 1" class="score-page">
       <transition-group name="score-list" tag="ul" class="score-list"
           @touchmove="scores_unfolded_items.clear()">
-        <li v-for="v in scores_list.toReversed()" :key="v.time"
+        <li v-for="(v, k) in scores_list.toReversed()" :key="v.time"
             @click="click_score_item(v.time)" class="score-item">
           <div class="score-item-main">
             <score-span :score="format_score(v.score)"></score-span>
@@ -147,14 +161,29 @@
                   💔
                 </el-button>
               </div>
-              <time-span v-else :time="desc_time(v.time)"></time-span>
+              <div class="score-item-rightop" v-else>
+                <time-span :time="desc_time(v.time)"></time-span>
+                <span class="id">#{{ scores_list.length - k }}</span>
+              </div>
             </transition>
           </div>
+          <transition name="el-zoom-in-bottom" mode="out-in">
+            <div v-if="scores_unfolded_items.has(v.time)">
+              <template v-for="(f2, k2) in data_single_keys">
+                <kv-span :name="k2 as string" :val="f2(v)" plain tiny></kv-span>
+              </template>
+            </div>
+            <div v-else>
+              <template v-for="(v2, k2) in data_extreme_keys">
+                <kv-span v-if="v.flags[k2]" :name="v2" :val="'$' + v[k2]" plain tiny></kv-span>
+              </template>
+            </div>
+          </transition>
           <div v-if="v.note" class="score-item-note">❤ {{ v.note }}</div>
         </li>
       </transition-group>
       <div class="overall">
-        <kv-span v-for="(v, k) in data" :name="k" :val="v"></kv-span>
+        <kv-span v-for="(f, k) in data_keys" :name="k as string" :val="f()"></kv-span>
       </div>
     </div>
     <div class="note">
@@ -171,7 +200,7 @@
   import type { Ref } from 'vue'
   import type { GanCubeConnection, GanCubeMove } from 'gan-web-bluetooth'
 
-  import { ref, inject, watch, onMounted, onBeforeUnmount } from 'vue'
+  import { ref, inject, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
   import { ElMessage, ElMessageBox } from 'element-plus'
   import { connectGanCube, cubeTimestampLinearFit, now } from 'gan-web-bluetooth'
   import { TwistyPlayer } from 'cubing/twisty'
@@ -192,7 +221,28 @@
   let title: Ref<string> = inject('title')!
   title.value = 'Cubing base'
 
+  const version_updater = {
+    '24.8.16.03': () => {
+      localStorage.clear()
+      localStorage.setItem('scores', '')
+    }
+  }
+  const curr_version = localStorage.getItem('version')
+  const latest_version = Object.keys(version_updater)[0]
+  if (curr_version != latest_version) {
+    let updater = version_updater[latest_version as keyof typeof version_updater]
+    if (updater)
+      updater()
+    localStorage.setItem('version', latest_version)
+    ElMessage.info(`Version updated to: ${latest_version}`)
+  }
+
   const make_move_buf = () => '    '.split('')
+  type score_item_flags = {
+    best?: boolean,
+    worst?: boolean,
+    best_ao5?: boolean
+  }
   type score_item = {
     time: number,
     score: number,
@@ -202,14 +252,47 @@
     ao5: number,
     best_ao5: number,
     note: string,
-    flags: {
-      best?: boolean,
-      worst?: boolean,
-      best_ao5?: boolean
-    }
+    flags: score_item_flags
   }
   const page = ref(0), scores_list = ref([] as score_item[]),
-    scores_unfolded_items = ref(new Set<number>()), data = ref({})
+    scores_unfolded_items = ref(new Set<number>())
+  const last_template = {
+    score: Infinity,
+    ao5: Infinity,
+    best_ao5: Infinity,
+    best: Infinity,
+    worst: Infinity
+  } as score_item
+  let last: score_item = last_template
+  const data_keys = ref(
+    {
+      'counts': () => `${scores_list.value.length}`,
+      'last': () => `$${format_score(last.score)}`,
+      'ao5': () => `$${format_score(last.ao5)}`,
+      'best ao5': () => `$${format_score(last.best_ao5)}`,
+      'best': () => `$${format_score(last.best)}`,
+      'worst': () => `$${format_score(last.worst)}`
+    } as {
+      [k: string]: () => string
+    }
+  ), data_extreme_keys = ref(
+    {
+      'best': 'best !!',
+      'best_ao5': 'best ao5 !!'
+    } as {
+      [k in keyof score_item & keyof score_item_flags]: string
+    }
+  ), data_single_keys = ref(
+    {
+      // SETM = Similar ETM:
+      // splits R3 R4 ... into R2(s) & R(s), ex: R3 = R2 + R counting as 2 steps;
+      // no counts for rotations.
+      'steps': (v: score_item) => `$${v.steps} SETM`,
+      'TPS': (v: score_item) => `$${(v.steps / v.score).toFixed(3)} SETPS`
+    } as {
+      [k: string]: (v: score_item) => string
+    }
+  )
   let conn: GanCubeConnection | null = null, cube_player: TwistyPlayer | null = null,
     conn_premove_buf = ''
   const conn_status = ref(false), conn_loading = ref(false), conn_synced = ref(false),
@@ -245,21 +328,7 @@
   }
   watch(scores_list, () => {
     localStorage.setItem('scores', json2str(scores_list.value))
-    let last = scores_list.value[scores_list.value.length - 1] || {
-      score: Infinity,
-      ao5: Infinity,
-      best_ao5: Infinity,
-      best: Infinity,
-      worst: Infinity
-    }
-    data.value = {
-      'counts': `${scores_list.value.length}`,
-      'last': `$${format_score(last.score)}`,
-      'ao5': `$${format_score(last.ao5)}`,
-      'best ao5': `$${format_score(last.best_ao5)}`,
-      'best': `$${format_score(last.best)}`,
-      'worst': `$${format_score(last.worst)}`
-    }
+    last = scores_list.value[scores_list.value.length - 1] || last_template
     scores_unfolded_items.value.clear()
   }, { deep: true })
   function make_note(msg = '', title = '', score = '') {
@@ -432,7 +501,7 @@
     make_note('Go!')
     make_voice('go.')
   }
-  function timer_stop() {
+  async function timer_stop() {
     timer_clocks_clear()
     timer_move_events = cubeTimestampLinearFit(timer_move_events)
     let time = timer_move_events[timer_move_events.length - 1].cubeTimestamp
@@ -500,6 +569,9 @@
       make_voice(`${voiced ? 'and ' : 'perfect. '}best AO5 ever.`)
     }
     scores_list.value.push(body)
+    await nextTick()
+    scores_unfolded_items.value.clear()
+    scores_unfolded_items.value.add(body.time)
     timer_move_events = []
     timer_ready_status = timer_status = false
     timer_move_buf = make_move_buf()
@@ -667,7 +739,7 @@
       let facelets = patternToFacelets(kpattern)
       cube_status.value = facelets == facelet_solved
       if (cube_status.value && timer_status)
-        timer_stop()
+        await timer_stop()
     })
   })
   onBeforeUnmount(() => {
