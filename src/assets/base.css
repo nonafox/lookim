@@ -1,0 +1,12 @@
+:root {
+    --color-theme: #ff5757;
+    --color-theme-shallow: #ff9a9a;
+    --color-theme-bg: #f6f6ff;
+    --color-theme-bg-hover: #e5e7ff;
+    --color-border: #ff5757;
+    --color-border-shallow: #fbcccc;
+    --color-font: #ff5757;
+    --color-font-shallow: #ff9a9a;
+    --color-font-shallow-plus: #fbcccc;
+    --color-font-rev: #f6f6ff;
+}
