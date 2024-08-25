@@ -62,7 +62,6 @@ export class auth {
     setTimeout(() => {
       localStorage.clear()
       location.reload()
-      throw new Error('Ready to refresh.')
     }, login_refresh_interval)
   }
 }

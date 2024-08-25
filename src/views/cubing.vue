@@ -225,8 +225,6 @@
   let title: Ref<string> = inject('title')!
   title.value = 'Cubing base'
 
-  await binStorage.init()
-
   const version_updater = {
     '24.8.23.02': () => {
       localStorage.clear()

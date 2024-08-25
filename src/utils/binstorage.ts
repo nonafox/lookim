@@ -1,3 +1,4 @@
+import { clearIntervalAsync, setIntervalAsync } from 'set-interval-async'
 import { apis, login_status_check_interval } from './conf'
 import { auth } from './auth'
 
@@ -121,9 +122,11 @@ export class binStorage {
   }
   public static async init() {
     await this.sync()
-    setInterval(async () => {
-      if (typeof (await this.data()).data.version != 'number')
+    const interval_id = setIntervalAsync(async () => {
+      if (typeof (await this.data()).data.version != 'number') {
         auth.logout()
+        await clearIntervalAsync(interval_id)
+      }
     }, login_status_check_interval)
   }
 }

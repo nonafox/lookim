@@ -13,6 +13,11 @@ const router = createRouter({
       name: 'cubing',
       component: () => import('../views/cubing.vue')
     },
+    {
+      path: '/chating',
+      name: 'chating',
+      component: () => import('../views/chating.vue')
+    },
   ]
 })
 
