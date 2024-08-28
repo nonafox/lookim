@@ -1,7 +1,7 @@
 // general
 export const file_max_size = 50 * 1024 * 1024
 export const file_max_size_image = 3 * 1024 * 1024
-export const drag_transform_length = 50 // px
+export const drag_transform_length = 60 // px
 export const drag_transform_scale = 1.2
 const api_prefix = 'https://api.lookim.cn/'
 export const apis = {
@@ -9,6 +9,7 @@ export const apis = {
   storage_sync: `${api_prefix}storage_sync`,
   chat: `${api_prefix}chat`,
   chat_send: `${api_prefix}chat_send`,
+  chat_send_func: `${api_prefix}chat_send_func`,
   chat_fold: `${api_prefix}chat_fold`,
   upload: `${api_prefix}chat_upload`,
 }

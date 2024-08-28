@@ -1,4 +1,4 @@
-export type message_item_type = 'common' | 'image' | 'video' | 'file' | 'function'
+export type message_item_type = 'common' | 'image' | 'video' | 'file' | 'function' | '__time'
 export type message_item = {
   time: number,
   edited_time: number,
@@ -10,8 +10,7 @@ export type message_item = {
 }
 
 export const message_func_table: {
-  [_: string]: { msg: string }
+  [k: string]: { desc: string, msg: string }
 } = {
-  reset: { msg: 'Records reset.' },
-  notify: { msg: 'Notified.' },
+  notify: { desc: 'Notify you by SMS.', msg: 'Notified.' },
 }

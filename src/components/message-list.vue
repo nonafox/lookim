@@ -26,6 +26,11 @@
     display: flex;
     flex-direction: row;
   }
+  .container * {
+    word-break: break-word;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+  }
   .you .container {
     justify-content: flex-start;
   }
@@ -44,9 +49,8 @@
     border-top-right-radius: 0;
   }
   .common {
+    max-width: 60%;
     padding: .6rem .8rem;
-    word-break: normal;
-    white-space: pre;
     user-select: text;
   }
   .you .common, .you .file, .you .function {
@@ -56,22 +60,35 @@
     background-color: var(--color-message-me);
   }
   .image {
+    min-width: 20%;
+    max-width: 40%;
+    min-height: 5rem;
+    max-height: 15rem;
+  }
+  .video-wrapper {
+    display: flex;
     max-width: 40%;
     max-height: 15rem;
+    justify-content: center;
+    position: relative;
+    background-image: url(../../public/img/video-cover.png);
+    background-position: center;
+    background-size: cover;
+    cursor: pointer;
+    overflow: hidden;
   }
   .video {
-    max-width: 40%;
-    max-height: 15rem;
-    cursor: pointer;
+    min-width: 20%;
+    min-height: 5rem;
+    z-index: -1;
   }
   .file {
+    max-width: 60%;
     padding: 1rem;
-    word-break: normal;
-    white-space: pre;
     cursor: pointer;
   }
   .file .file-title {
-    margin-bottom: 1rem;
+    margin-bottom: .6rem;
     font-size: 120%;
     font-weight: bold;
     text-align: center;
@@ -98,10 +115,14 @@
     margin: .3rem;
     border-radius: .4rem;
     padding: .4rem .5rem;
-    word-break: normal;
-    white-space: pre;
     font-size: 80%;
     opacity: 70%;
+  }
+  .time {
+    box-sizing: border-box;
+    margin: .6rem;
+    font-size: 70%;
+    opacity: 50%;
   }
 </style>
 
@@ -110,24 +131,32 @@
     <transition-group tag="div" ref="list_inner_elm" class="list-li" name="list">
       <div v-for="v in props.list" :key="v.time" :class="isMe(v.user_id) ? 'me' : 'you'"
           v-loading="loadingList.has(v.time)">
-        <div v-drag.left="() => emit('fold', v.time)"
-            :class="v.folded || v.type == 'function' ? 'container-function' : 'container'">
-          <div v-if="v.folded" class="function">🌀folded...</div>
+        <div v-drag.left="calc_drag(v)" :class="calc_class(v)">
+          <div v-if="v.type == '__time'" class="time">
+            {{ desc_time(+ v.msg) }}
+          </div>
+          <div v-else-if="v.folded" class="function">
+            🌀folded...
+          </div>
           <div v-else-if="v.type == 'common'" class="common">
             {{ v.msg }}
           </div>
           <el-image v-else-if="v.type == 'image'" class="image" :src="v.msg"
               :preview-src-list="[v.msg]" fit="cover">
           </el-image>
-          <video v-else-if="v.type == 'video'" class="video" @click="jump(v.msg)">
-            <source :src="v.msg"></source>
-          </video>
+          <div v-else-if="v.type == 'video'" class="video-wrapper" @click="jump(v.msg)">
+            <video class="video">
+              <source :src="v.msg"></source>
+            </video>
+          </div>
           <div v-else-if="v.type == 'file'" class="file" @click="jump(v.msg)">
-            <div class="file-title">📄File</div>
+            <div class="file-title">🌀File</div>
             <div class="file-name">{{ v.msg.split('/').findLast(() => true) }}</div>
             <div class="file-size">{{ filesize(+ v.submsg, { standard: 'jedec' }) }}</div>
           </div>
-          <div v-else-if="v.type == 'function'" class="function">🌀{{ message_func_table[v.msg].msg }}</div>
+          <div v-else-if="v.type == 'function'" class="function">
+            🌀{{ message_func_table[v.submsg].msg }}
+          </div>
         </div>
       </div>
     </transition-group>
@@ -141,6 +170,7 @@
   import { ref, watch, onMounted, onUnmounted } from 'vue'
   import { ElScrollbar } from 'element-plus'
   import { filesize } from 'filesize'
+  import { desc_time } from '../utils/funcs'
   import { message_func_table } from '../utils/types'
 
   const props = defineProps<{
@@ -155,6 +185,16 @@
   const list_inner_elm = ref<ComponentPublicInstance | null>(null)
   const loading_status = ref(false)
 
+  function calc_drag(v: message_item) {
+    if (v.type != 'function' && v.type != '__time')
+      return () => emit('fold', v.time)
+    return null
+  }
+  function calc_class(v: message_item) {
+    if (v.folded || v.type == 'function' || v.type == '__time')
+      return 'container-function'
+    return 'container'
+  }
   function isMe(user_id: number) {
     return user_id == Number.parseInt(localStorage.getItem('__user_id')!)
   }
@@ -168,7 +208,7 @@
       emit('load', true)
   }
   function scrollEnd() {
-    list_elm.value!.setScrollTop((list_inner_elm.value!.$el as HTMLDivElement).clientHeight)
+    list_elm.value!.setScrollTop((list_inner_elm.value!.$el as HTMLDivElement).offsetHeight)
   }
   function loading() {
     loading_status.value = true
@@ -176,7 +216,7 @@
 
   let inner_height = 0
   const observer = new ResizeObserver(() => {
-    const new_height = (list_inner_elm.value!.$el as HTMLDivElement).clientHeight
+    const new_height = (list_inner_elm.value!.$el as HTMLDivElement).offsetHeight
     const diff = new_height - inner_height
     if (inner_height) {
       list_elm.value!.setScrollTop(scroll_top + diff)

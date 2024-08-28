@@ -9,13 +9,19 @@
   .list {
     height: calc(70vh - var(--page-nav-height));
   }
-  .uploader-container {
+  .buttons-container {
     display: flex;
     flex-direction: row;
     align-items: center;
     margin-top: 1rem;
   }
   .uploader+.uploader {
+    margin-left: 10px;
+  }
+  .el-button+.uploader {
+    margin-left: 10px;
+  }
+  .uploader+.el-button {
     margin-left: 10px;
   }
   .dialog-process {
@@ -29,7 +35,7 @@
         @load="triggerLoad" @fold="fold" class="list">
     </message-list>
     <el-input v-model="input" @keyup.enter="send" size="large"></el-input>
-    <div class="uploader-container">
+    <div class="buttons-container">
       <el-upload v-for="v in uploaders"
           ref="upload_elm"
           class="uploader"
@@ -44,6 +50,9 @@
           :on-error="on_error">
         <el-button circle>{{ v.name }}</el-button>
       </el-upload>
+      <el-button v-for="(_, k) in message_func_table" @click="func(k as string)" circle>
+        {{ functions_translation[k] }}
+      </el-button>
     </div>
   </div>
 
@@ -71,7 +80,11 @@
   import { ElMessageBox } from 'element-plus'
   import { filesize } from 'filesize'
   import MessageList from '../components/message-list.vue'
+  import { desc_time } from '../utils/funcs'
   import { auth } from '../utils/auth'
+  import {
+    message_func_table
+  } from '../utils/types'
   import {
     file_max_size,
     file_max_size_image,
@@ -106,6 +119,11 @@
       accept: '*'
     }
   ]
+  const functions_translation: {
+    [_: string]: string
+  } = {
+    'notify': '💗'
+  }
   const list = ref([] as message_item[])
   const loading_list = ref(new Set<number>())
   const input = ref('')
@@ -113,6 +131,30 @@
 
   let n = 0,
     version = [0, 0, 0] as [number, number, number] // [edited_time, last_time, counts]
+  function mark_times(this_list: message_item[]) {
+    let last = ''
+    // shallow copy
+    const this_list_copy = [...this_list]
+    for (let v of this_list_copy) {
+      let time = desc_time(v.time)
+      if (! last || last != time) {
+        this_list.splice(this_list.indexOf(v), 0, {
+          // as key, `time` must be unique
+          time: v.time + .5,
+          edited_time: v.time,
+          user_id: v.user_id,
+          type: '__time',
+          msg: '' + v.time,
+          submsg: '',
+          folded: 0
+        })
+        last = time
+      }
+        console.warn(v)
+        console.warn(JSON.stringify(this_list))
+        console.warn(this_list.indexOf(v) - 1)
+    }
+  }
   async function load(more = false) {
     const first_more = more && ! n
     const body = new FormData()
@@ -131,6 +173,7 @@
     }
     if (data.status) {
       const handler = async () => {
+        mark_times(data.data.list!)
         list.value = data.data.list!
         loading_list.value.clear()
         await nextTick()
@@ -163,7 +206,6 @@
     if (input.value) {
       const body = new FormData()
       body.append('user', await auth.user())
-      body.append('type', 'common')
       body.append('msg', input.value)
       await fetch(apis.chat_send, {
         method: 'post',
@@ -171,6 +213,22 @@
       })
       input.value = ''
     }
+  }
+  function func(name: string) {
+    const info = message_func_table[name]
+    ElMessageBox.confirm(
+      `Sure to use the function『${info.desc}』?`,
+      'Function'
+    ).then(async () => {
+      const body = new FormData()
+      body.append('user', await auth.user())
+      body.append('name', name)
+      body.append('msg', info.msg)
+      await fetch(apis.chat_send_func, {
+        method: 'post',
+        body
+      })
+    })
   }
   async function fold(time_id: number) {
     loading_list.value.add(time_id)

@@ -16,6 +16,8 @@ const app = createApp(App)
 app.use(router)
 app.directive('drag', {
   mounted(el: HTMLElement, binding) {
+    if (typeof binding.value != 'function')
+      return
     const left = binding.modifiers.left || ! binding.modifiers.right
     let start_e: TouchEvent | MouseEvent | null = null
     let reach_peak = false
