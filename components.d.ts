@@ -9,13 +9,21 @@ declare module 'vue' {
   export interface GlobalComponents {
     ElButton: typeof import('element-plus/es')['ElButton']
     ElCollapseTransition: typeof import('element-plus/es')['ElCollapseTransition']
+    ElDialog: typeof import('element-plus/es')['ElDialog']
+    ElImage: typeof import('element-plus/es')['ElImage']
+    ElInput: typeof import('element-plus/es')['ElInput']
+    ElProgress: typeof import('element-plus/es')['ElProgress']
+    ElScrollbar: typeof import('element-plus/es')['ElScrollbar']
+    ElUpload: typeof import('element-plus/es')['ElUpload']
     KvSpan: typeof import('./src/components/kv-span.vue')['default']
+    MessageList: typeof import('./src/components/message-list.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     ScoreSpan: typeof import('./src/components/score-span.vue')['default']
     TimeSpan: typeof import('./src/components/time-span.vue')['default']
   }
   export interface ComponentCustomProperties {
+    vInfiniteScroll: typeof import('element-plus/es')['ElInfiniteScroll']
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']
   }
 }

@@ -12,6 +12,7 @@
   "dependencies": {
     "cubing": "^0.51.0",
     "element-plus": "^2.7.8",
+    "filesize": "^10.1.4",
     "gan-web-bluetooth": "^2.2.2",
     "set-interval-async": "^3.0.3",
     "vue": "^3.4.26",

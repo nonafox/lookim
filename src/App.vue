@@ -10,7 +10,7 @@
     left: 0;
     top: 0;
     width: 100%;
-    height: 5rem;
+    height: var(--page-nav-height);
     padding: .1rem 1rem;
     background-color: var(--color-theme-bg);
     border-radius: 0 0 1rem 0;
@@ -46,23 +46,25 @@
 </style>
 
 <template>
-  <div class="nav">
-    <div class="logo-title">
-      <router-link to="/"><img class="logo" src="../public/img/lookim.png"/></router-link>
-      <div class="title">| {{ title }}</div>
+  <el-scrollbar tag="div" height="100vh">
+    <div class="nav">
+      <div class="logo-title">
+        <router-link to="/"><img class="logo" src="../public/img/lookim.png"/></router-link>
+        <div class="title">| {{ title }}</div>
+      </div>
+      <div>
+        <el-button @click="auth.logout('Logged out.')" circle>💛</el-button>
+      </div>
     </div>
-    <div>
-      <el-button @click="auth.logout('Logged out.')" circle>💛</el-button>
+    <div class="contents">
+      <Suspense>
+        <RouterView/>
+      </Suspense>
+      <div class="copyright">
+        Copyright © 2024 Jason Tan
+      </div>
     </div>
-  </div>
-  <div class="contents">
-    <Suspense>
-      <RouterView />
-    </Suspense>
-    <div class="copyright">
-      Copyright © 2024 Jason Tan
-    </div>
-  </div>
+  </el-scrollbar>
 </template>
 
 <script lang="ts" setup>

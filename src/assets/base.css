@@ -9,4 +9,8 @@
     --color-font-shallow: #ff9a9a;
     --color-font-shallow-plus: #fbcccc;
     --color-font-rev: #f6f6ff;
+    --color-message-you: #e5e7ff;
+    --color-message-me: #95EC6A;
+
+    --page-nav-height: 5rem;
 }

@@ -29,12 +29,14 @@ export class auth {
         })).json() as {
           status: boolean,
           data: {
-            real_name: string
+            real_name: string,
+            user_id: number
           }
         }
         if (json.status) {
           __user = json.data.real_name
           localStorage.setItem('__user', __user)
+          localStorage.setItem('__user_id', '' + json.data.user_id)
           ElMessage.success('Logged in successfully.')
         }
         else {
@@ -48,6 +50,13 @@ export class auth {
       throw new Error('Login failed.')
     }
   }
+  public static assertUser() {
+    const user = localStorage.getItem('__user')
+    if (user)
+      return user
+    else
+      throw new Error('Login status unusual.')
+  }
   public static logout(msg = '') {
     ElMessageBox.alert(
       `${msg}${msg ? ' ' : ''}Ready to refresh.`,
@@ -56,7 +65,8 @@ export class auth {
         showClose: false,
         showConfirmButton: false,
         showCancelButton: false,
-        closeOnClickModal: false
+        closeOnClickModal: false,
+        closeOnPressEscape: false
       }
     )
     setTimeout(() => {

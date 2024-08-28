@@ -39,13 +39,27 @@
     align-items: center;
     margin: 1.5rem 0;
   }
+  .score-list-container {
+    height: calc(60vh - var(--page-nav-height));
+  }
   .score-list {
     box-sizing: border-box;
     max-width: 100%;
     width: 20rem;
-    height: 24rem;
     padding: 0;
-    overflow: hidden scroll;
+  }
+  .score-list-move,
+  .score-list-enter-active,
+  .score-list-leave-active {
+    transition: all .3s ease;
+  }
+  .score-list-enter-from,
+  .score-list-leave-to {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  .score-list-leave-active {
+    position: absolute;
   }
   .score-item {
     transition: all .3s ease;
@@ -103,27 +117,13 @@
   .score-item .score {
     font-size: 150%;
   }
-  .score-list-move,
-  .score-list-enter-active,
-  .score-list-leave-active {
-    transition: all .3s ease;
-  }
-  .score-list-enter-from,
-  .score-list-leave-to {
-    opacity: 0;
-    transform: translateX(30px);
-  }
-  .score-list-leave-active {
-    position: absolute;
-  }
   .overall {
     box-sizing: border-box;
     text-align: center;
     width: 100vw;
-    overflow: scroll hidden;
     text-wrap: nowrap;
     margin: 1rem 0;
-    padding: .2rem;
+    padding: .5rem;
   }
 </style>
 
@@ -151,46 +151,48 @@
       </div>
     </div>
     <div v-show="page == 1" class="score-page">
-      <transition-group name="score-list" tag="ul" class="score-list"
-          @touchmove="scores_unfolded_items.clear()">
-        <li v-for="(v, k) in scores_list.toReversed()" :key="v.time"
-            @click="click_score_item(v.time)" class="score-item">
-          <div class="score-item-main">
-            <score-span :score="format_score(v.score)"></score-span>
-            <transition name="el-zoom-in-bottom" mode="out-in">
-              <div v-if="scores_unfolded_items.has(v.time)" class="score-item-rightop-unfolded">
-                <el-button @click.stop="score_item_note(v.time)"
-                    circle :type="v.note ? 'primary' : ''">
-                  ❤
-                </el-button>
-                <el-button @click.stop="score_item_del(v.time)" circle>
-                  💔
-                </el-button>
+      <el-scrollbar tag="div" class="score-list-container">
+        <transition-group name="score-list" tag="ul" ref="score_list_elm" class="score-list"
+            @touchmove="scores_unfolded_items.clear()">
+          <li v-for="(v, k) in scores_list.toReversed()" :key="v.time"
+              @click="click_score_item(v.time)" class="score-item">
+            <div class="score-item-main">
+              <score-span :score="format_score(v.score)"></score-span>
+              <transition name="el-zoom-in-bottom" mode="out-in">
+                <div v-if="scores_unfolded_items.has(v.time)" class="score-item-rightop-unfolded">
+                  <el-button @click.stop="score_item_note(v.time)"
+                      circle :type="v.note ? 'primary' : ''">
+                    ❤
+                  </el-button>
+                  <el-button @click.stop="score_item_del(v.time)" circle>
+                    💔
+                  </el-button>
+                </div>
+                <div class="score-item-rightop-folded" v-else>
+                  <time-span :time="desc_time(v.time)"></time-span>
+                  <span class="id">#{{ scores_list.length - k }}</span>
+                </div>
+              </transition>
+            </div>
+            <transition name="el-zoom-in-bottom" mode="out-in" class="score-item-bottom">
+              <div v-if="scores_unfolded_items.has(v.time)">
+                <template v-for="(f2, k2) in data_single_keys">
+                  <kv-span :name="k2 as string" :val="f2(v)" plain tiny></kv-span>
+                </template>
               </div>
-              <div class="score-item-rightop-folded" v-else>
-                <time-span :time="desc_time(v.time)"></time-span>
-                <span class="id">#{{ scores_list.length - k }}</span>
+              <div v-else>
+                <template v-for="(v2, k2) in data_extreme_keys">
+                  <kv-span v-if="v.flags[k2]" :name="v2" :val="'$' + v[k2]" plain tiny></kv-span>
+                </template>
               </div>
             </transition>
-          </div>
-          <transition name="el-zoom-in-bottom" mode="out-in" class="score-item-bottom">
-            <div v-if="scores_unfolded_items.has(v.time)">
-              <template v-for="(f2, k2) in data_single_keys">
-                <kv-span :name="k2 as string" :val="f2(v)" plain tiny></kv-span>
-              </template>
-            </div>
-            <div v-else>
-              <template v-for="(v2, k2) in data_extreme_keys">
-                <kv-span v-if="v.flags[k2]" :name="v2" :val="'$' + v[k2]" plain tiny></kv-span>
-              </template>
-            </div>
-          </transition>
-          <div v-if="v.note" class="score-item-note">❤ {{ v.note }}</div>
-        </li>
-      </transition-group>
-      <div class="overall">
+            <div v-if="v.note" class="score-item-note">❤ {{ v.note }}</div>
+          </li>
+        </transition-group>
+      </el-scrollbar>
+      <el-scrollbar tag="div" class="overall">
         <kv-span v-for="(f, k) in data_keys" :name="k as string" :val="f()"></kv-span>
-      </div>
+      </el-scrollbar>
     </div>
     <div class="note">
       <div class="title">{{ note_title }}</div>
@@ -206,8 +208,8 @@
   import type { Ref } from 'vue'
   import type { GanCubeConnection, GanCubeMove } from 'gan-web-bluetooth'
 
-  import { ref, inject, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
-  import { ElMessage, ElMessageBox } from 'element-plus'
+  import { ref, inject, watch, onMounted, onBeforeUnmount } from 'vue'
+  import { ElMessage, ElMessageBox, ElScrollbar } from 'element-plus'
   import { connectGanCube, cubeTimestampLinearFit, now } from 'gan-web-bluetooth'
   import { TwistyPlayer } from 'cubing/twisty'
   import { experimentalSolve3x3x3IgnoringCenters } from 'cubing/search'
@@ -224,6 +226,7 @@
 
   let title: Ref<string> = inject('title')!
   title.value = 'Cubing base'
+  const score_list_elm = ref<InstanceType<typeof ElScrollbar> | null>(null)
 
   const version_updater = {
     '24.8.23.02': () => {
@@ -280,8 +283,8 @@
     }
   ), data_extreme_keys = ref(
     {
-      'best': 'best !!',
-      'best_ao5': 'best ao5 !!'
+      'best': 'best',
+      'best_ao5': 'best ao5'
     } as {
       [k in keyof score_item & keyof score_item_flags]: string
     }
@@ -333,6 +336,8 @@
     await binStorage.setItem('scores', json2str(scores_list.value))
     last = scores_list.value[scores_list.value.length - 1] || last_template
     scores_unfolded_items.value.clear()
+    scores_unfolded_items.value.add(last.time)
+    score_list_elm.value!.setScrollTop(0)
   }, { deep: true })
   function make_note(msg = '', title = '', score = '') {
     note_msg.value = msg
@@ -572,9 +577,7 @@
       make_voice(`${voiced ? 'and ' : 'perfect. '}best AO5 ever.`)
     }
     scores_list.value.push(body)
-    await nextTick()
-    scores_unfolded_items.value.clear()
-    scores_unfolded_items.value.add(body.time)
+
     timer_move_events = []
     timer_ready_status = timer_status = false
     timer_move_buf = make_move_buf()
