@@ -58,6 +58,10 @@ export class auth {
       throw new Error('Login status unusual.')
   }
   public static async logout(msg = '') {
+    setTimeout(() => {
+      localStorage.clear()
+      location.reload()
+    }, login_refresh_interval)
     await ElMessageBox.confirm(
       `${msg}${msg ? ' ' : ''}Ready to refresh.`,
       'Warning',
@@ -69,9 +73,5 @@ export class auth {
         closeOnPressEscape: false
       }
     )
-    setTimeout(() => {
-      localStorage.clear()
-      location.reload()
-    }, login_refresh_interval)
   }
 }
