@@ -46,7 +46,7 @@ export class auth {
       return __user
     }
     catch {
-      this.logout('Login failed.')
+      await this.logout('Login failed.')
       throw new Error('Login failed.')
     }
   }
@@ -57,8 +57,8 @@ export class auth {
     else
       throw new Error('Login status unusual.')
   }
-  public static logout(msg = '') {
-    ElMessageBox.alert(
+  public static async logout(msg = '') {
+    await ElMessageBox.confirm(
       `${msg}${msg ? ' ' : ''}Ready to refresh.`,
       'Warning',
       {

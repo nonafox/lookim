@@ -22,7 +22,7 @@ export class binStorage {
       }
     }
     if (! res.status)
-      auth.logout()
+      await auth.logout()
     return res
   }
   private static async sync_from() {
@@ -53,6 +53,8 @@ export class binStorage {
       } = {}
       for (let i = 0, k: string; i < localStorage.length; i ++) {
         k = localStorage.key(i)!
+        if (k.startsWith('__'))
+          continue
         json[k] = localStorage.getItem(k)!
       }
       const body = new FormData()
@@ -83,7 +85,7 @@ export class binStorage {
     const v1 = Number.parseInt(localStorage.getItem('__version') || '0'),
       v2 = (await this.data()).data.version
     if (typeof v2 != 'number') {
-      auth.logout()
+      await auth.logout()
       return
     }
     let push = true
@@ -124,7 +126,7 @@ export class binStorage {
     await this.sync()
     const interval_id = setIntervalAsync(async () => {
       if (typeof (await this.data()).data.version != 'number') {
-        auth.logout()
+        await auth.logout()
         await clearIntervalAsync(interval_id)
       }
     }, login_status_check_interval)

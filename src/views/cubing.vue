@@ -228,21 +228,6 @@
   title.value = 'Cubing base'
   const score_list_elm = ref<InstanceType<typeof ElScrollbar> | null>(null)
 
-  const version_updater = {
-    '24.8.23.02': () => {
-      localStorage.clear()
-    }
-  }
-  const curr_version = await binStorage.getItem('version')
-  const latest_version = Object.keys(version_updater)[0]
-  if (curr_version != latest_version) {
-    let updater = version_updater[latest_version as keyof typeof version_updater]
-    if (updater)
-      updater()
-    await binStorage.setItem('version', latest_version)
-    ElMessage.info(`Version updated to: ${latest_version}`)
-  }
-
   const make_move_buf = () => '    '.split('')
   type score_item_flags = {
     best?: boolean,
