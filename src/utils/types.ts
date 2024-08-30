@@ -12,5 +12,5 @@ export type message_item = {
 export const message_func_table: {
   [k: string]: { desc: string, msg: string }
 } = {
-  notify: { desc: 'Notify you by SMS.', msg: 'Notified.' },
+  notify: { desc: 'Notify you by SMS.', msg: 'notified.' },
 }

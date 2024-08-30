@@ -1,8 +1,12 @@
 import type { GanCubeMove } from 'gan-web-bluetooth'
-import { sol_mse_interval_time_threshold } from './conf'
+
+import { ref } from 'vue'
+import { sol_mse_interval_time_threshold, date_update_interval } from './conf'
 
 export const time_sp = ' '
 function desc_date(time: number, show_today = false) {
+  // force dependency
+  void date_now.value
   let date = new Date(time)
   let y, m, d
   y = date.getFullYear()
@@ -26,6 +30,18 @@ function desc_date(time: number, show_today = false) {
   }
   return `${y}/${m}/${d}${time_sp}`
 }
+function sign_date() {
+  let date = new Date()
+  let y, m, d
+  y = date.getFullYear()
+  m = date.getMonth() + 1
+  d = date.getDate()
+  return `${y}/${m}/${d}`
+}
+const date_now = ref(sign_date())
+setInterval(() => {
+  date_now.value = sign_date()
+}, date_update_interval)
 export function desc_time(time: number, has_s = false) {
   let date = new Date(time)
   let dateText, h, i, s

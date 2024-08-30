@@ -1,4 +1,5 @@
 // general
+export const date_update_interval = 5 * 1000 // ms
 export const file_max_size = 50 * 1024 * 1024
 export const file_max_size_image = 3 * 1024 * 1024
 export const drag_transform_length = 60 // px

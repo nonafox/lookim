@@ -114,7 +114,7 @@
       accept: 'video/*'
     },
     {
-      name: '📄',
+      name: '📂',
       type: 'file',
       accept: '*'
     }
@@ -150,9 +150,6 @@
         })
         last = time
       }
-        console.warn(v)
-        console.warn(JSON.stringify(this_list))
-        console.warn(this_list.indexOf(v) - 1)
     }
   }
   async function load(more = false) {
@@ -223,7 +220,6 @@
       const body = new FormData()
       body.append('user', await auth.user())
       body.append('name', name)
-      body.append('msg', info.msg)
       await fetch(apis.chat_send_func, {
         method: 'post',
         body

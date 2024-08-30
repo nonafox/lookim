@@ -136,7 +136,7 @@
             {{ desc_time(+ v.msg) }}
           </div>
           <div v-else-if="v.folded" class="function">
-            🌀folded...
+            🔖folded...
           </div>
           <div v-else-if="v.type == 'common'" class="common">
             {{ v.msg }}
@@ -150,7 +150,7 @@
             </video>
           </div>
           <div v-else-if="v.type == 'file'" class="file" @click="jump(v.msg)">
-            <div class="file-title">🌀File</div>
+            <div class="file-title">📂File</div>
             <div class="file-name">{{ v.msg.split('/').findLast(() => true) }}</div>
             <div class="file-size">{{ filesize(+ v.submsg, { standard: 'jedec' }) }}</div>
           </div>
