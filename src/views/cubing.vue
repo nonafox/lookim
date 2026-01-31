@@ -317,13 +317,6 @@
       await binStorage.setItem('scores', json2str([]))
     scores_list.value = str2json((await binStorage.getItem('scores'))!) as score_item[]
   }
-  watch(scores_list, async () => {
-    await binStorage.setItem('scores', json2str(scores_list.value))
-    last = scores_list.value[scores_list.value.length - 1] || last_template
-    scores_unfolded_items.value.clear()
-    scores_unfolded_items.value.add(last.time)
-    score_list_elm.value!.setScrollTop(0)
-  }, { deep: true })
   function make_note(msg = '', title = '', score = '') {
     note_msg.value = msg
     note_title.value = title
@@ -732,6 +725,14 @@
       if (cube_status.value && timer_status)
         await timer_stop()
     })
+    
+    watch(scores_list, async () => {
+      await binStorage.setItem('scores', json2str(scores_list.value))
+      last = scores_list.value[scores_list.value.length - 1] || last_template
+      scores_unfolded_items.value.clear()
+      scores_unfolded_items.value.add(last.time)
+      score_list_elm.value!.setScrollTop(0)
+    }, { deep: true })
   })
   onBeforeUnmount(() => {
     disconnect()

@@ -39,7 +39,7 @@ export default defineConfig({
       workbox: {
         runtimeCaching: [
           {
-            urlPattern: ({url}) => url.host == location.host,
+            urlPattern: ({ url }) => url.host == location.host,
             handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'default-cache',
@@ -49,13 +49,14 @@ export default defineConfig({
         cleanupOutdatedCaches: false,
         skipWaiting: true,
         clientsClaim: true,
+        disableDevLogs: true,
       },
 
       devOptions: {
         enabled: true,
         navigateFallback: 'index.html',
         suppressWarnings: true,
-        type: 'module',
+        type: 'classic',
       },
 
       selfDestroying: false,
